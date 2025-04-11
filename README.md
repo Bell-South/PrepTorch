@@ -1,31 +1,32 @@
-# PrepTorch
-
-## YOLO Dataset Preparation Tool
+# YOLO Dataset Preparation Tool
 
 A Python tool for preparing image datasets in YOLO format for object detection training.
 
 ## Features
 
-- **Resize Images**: Convert all images to a square format (640×640 or 1280×1280).
-- **Adjust Bounding Boxes**: Automatically adjust YOLO-format bounding box coordinates.
-- **Expand Bounding Boxes**: Increase the size of bounding boxes by a specified percentage.
-- **Train/Val Split**: Split your dataset into training and validation sets.
-- **Preview Generation**: Create visual previews of images with their bounding boxes.
-- **Summary Reports**: Generate detailed dataset statistics.
+- **Resize Images**: Convert all images to a square format (640×640 or 1280×1280) while preserving aspect ratio
+- **Adjust Bounding Boxes**: Automatically adjust YOLO-format bounding box coordinates
+- **Expand Bounding Boxes**: Increase the size of bounding boxes by a specified percentage
+- **Train/Val Split**: Split your dataset into training and validation sets
+- **Preview Generation**: Create visual previews of images with their bounding boxes
+- **Summary Reports**: Generate detailed dataset statistics
+- **Debug Utilities**: Generate previews of original dataset and side-by-side comparisons
 
 ## Directory Structure
 
 ```
-PrepTorch/
-├── main.py              # Entry point with CLI interface
+yolo_dataset_prep/
+├── main.py                  # Main processing script
+├── preview_original.py      # Utility to preview original dataset
+├── compare_bbox.py        # Utility to compare original vs processed images
 ├── utils/
 │   ├── __init__.py
-│   ├── resize.py        # Image resizing utilities
-│   ├── bbox.py          # Bounding box manipulation utilities
-│   ├── visualization.py # Drawing bounding boxes on images
-│   └── report.py        # Summary report generation
-├── README.md            # Documentation and usage examples
-└── requirements.txt     # Dependencies
+│   ├── resize.py            # Image resizing utilities
+│   ├── bbox.py              # Bounding box manipulation utilities
+│   ├── visualization.py     # Drawing bounding boxes on images
+│   └── report.py            # Summary report generation
+├── README.md                # Documentation and usage examples
+└── requirements.txt         # Dependencies
 ```
 
 ## Installation
@@ -42,12 +43,6 @@ PrepTorch/
    ```
 
 ## Usage
-
-### Basic Usage
-
-```bash
-python main.py --input_dir /path/to/dataset --output_dir /path/to/output --size 640 --expand_percentage 20
-```
 
 ### Required Directory Structure
 
@@ -70,25 +65,21 @@ Each label file should follow the YOLO format:
 ```
 With all values normalized between 0 and 1.
 
-### Output Structure
+### Main Processing Tool
 
-The tool will create the following output structure:
-```
-output_dir/
-├── train/
-│   ├── images/
-│   └── labels/
-├── val/
-│   ├── images/
-│   └── labels/
-├── preview/
-│   ├── image1_preview.jpg
-│   ├── image2_preview.jpg
-│   └── ...
-└── dataset_summary.txt
+Process a dataset, resize images, and expand bounding boxes:
+
+```bash
+python main.py \
+  --input_dir ./my_dataset \
+  --output_dir ./processed_dataset \
+  --size 640 \
+  --expand_percentage 20.0 \
+  --train_split 0.7 \
+  --seed 42
 ```
 
-### Command Line Arguments
+#### Command Line Arguments for main.py
 
 | Argument | Description | Default |
 |----------|-------------|---------|
@@ -99,16 +90,75 @@ output_dir/
 | `--train_split` | Proportion of images to use for training | 0.7 |
 | `--seed` | Random seed for reproducible train/val splits | 42 |
 
-## Example
+### Debug and Visualization Tools
 
-Process a dataset, resize images to 1280×1280, and expand bounding boxes by 15%:
+This project includes additional utilities to help visualize and debug your dataset.
+
+#### Preview Original Dataset
+
+Generate preview images for your original dataset with bounding boxes:
 
 ```bash
-python main.py \
+python preview_original.py \
   --input_dir ./my_dataset \
-  --output_dir ./processed_dataset \
-  --size 1280 \
-  --expand_percentage 15.0 \
-  --train_split 0.8 \
-  --seed 123
+  --output_dir ./original_previews
 ```
+
+This tool is useful for verifying that your original labels are correctly aligned with objects before processing.
+
+#### Compare Original vs Processed Images
+
+Create side-by-side comparisons between original and processed images:
+
+```bash
+# Compare a specific image:
+python compare_bbox.py \
+  --original_dir ./my_dataset \
+  --processed_dir ./processed_dataset \
+  --output_dir ./comparisons \
+  --image_name image1
+
+# Compare multiple random samples:
+python compare_bbox.py \
+  --original_dir ./my_dataset \
+  --processed_dir ./processed_dataset \
+  --output_dir ./comparisons \
+  --num_samples 10
+```
+
+This helps you visually verify how the resizing and bounding box adjustments have affected your dataset.
+
+## How It Works
+
+### Image Resizing
+
+The tool uses a **resize-then-pad** approach:
+
+1. **Calculate Scaling**: Determine the scale that fits the image within the target dimensions while preserving aspect ratio
+2. **Resize Image**: Scale the image according to the calculated factor
+3. **Add Padding**: Create a square black canvas and center the resized image on it
+
+This approach ensures no information is lost (unlike cropping) and maintains the original aspect ratio of objects.
+
+### Bounding Box Processing
+
+For each bounding box:
+
+1. **Coordinate Adjustment**: Convert the normalized YOLO coordinates to account for the new image size and padding
+2. **Box Expansion**: Expand each bounding box by the specified percentage while maintaining its center point
+3. **Boundary Checking**: Ensure expanded boxes stay within image boundaries
+
+### Train/Val Split
+
+The tool randomly assigns images to training and validation sets according to the specified split ratio, which provides a proper dataset division for model training.
+
+## Troubleshooting Common Issues
+
+- **Misaligned Bounding Boxes**: Use the comparison tool to identify issues in original vs processed images
+- **Missing Labels**: Check if some images don't have corresponding label files
+- **Edge Cases**: Objects near image edges might require special attention
+- **Expansion Problems**: Reduce the expansion percentage if objects overlap after processing
+
+## License
+
+[Apache License](LICENSE)

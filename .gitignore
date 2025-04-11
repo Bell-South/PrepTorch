@@ -172,3 +172,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Custom
+input_dir
+input_dir/*
+output_directory
+output_directory/*
+original_previews
+original_previews/*
+comparisons
+comparisons/*
