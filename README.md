@@ -11,20 +11,23 @@ A Python tool for preparing image datasets in YOLO format for object detection t
 - **Preview Generation**: Create visual previews of images with their bounding boxes
 - **Summary Reports**: Generate detailed dataset statistics
 - **Debug Utilities**: Generate previews of original dataset and side-by-side comparisons
+- **Validation Tool**: Identify problematic bounding box annotations in your dataset
 
 ## Directory Structure
 
 ```
-yolo_dataset_prep/
+PrepTorch/
 ├── main.py                  # Main processing script
 ├── preview_original.py      # Utility to preview original dataset
-├── compare_bbox.py        # Utility to compare original vs processed images
+├── compare_bbox.py          # Utility to compare original vs processed images
 ├── utils/
 │   ├── __init__.py
 │   ├── resize.py            # Image resizing utilities
 │   ├── bbox.py              # Bounding box manipulation utilities
 │   ├── visualization.py     # Drawing bounding boxes on images
 │   └── report.py            # Summary report generation
+├── validation_tool/
+│   └── validation_tool.py   # Tool to identify problematic annotations
 ├── README.md                # Documentation and usage examples
 └── requirements.txt         # Dependencies
 ```
@@ -90,6 +93,47 @@ python main.py \
 | `--train_split` | Proportion of images to use for training | 0.7 |
 | `--seed` | Random seed for reproducible train/val splits | 42 |
 
+### Validation Tool
+
+Identify problematic bounding box annotations in your dataset:
+
+```bash
+python validation_tool/validation_tool.py \
+  --dataset_dir ./my_dataset \
+  --output_dir ./validation_results \
+  --min_box_size 0.005 \
+  --max_box_size 0.8
+```
+
+The validation tool detects several types of potential issues:
+- Boxes that are too small (possibly annotation errors)
+- Boxes that are too large (covering most of the image)
+- Overlapping boxes with high IoU (possible duplicates)
+- Boxes positioned at the edge (might be cut-off objects)
+- Unusual aspect ratios (compared to class average)
+
+#### Command Line Arguments for validation_tool.py
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--dataset_dir` | Dataset directory with 'images' and 'labels' folders | (Required) |
+| `--output_dir` | Directory to save reports and visualizations | (Required) |
+| `--min_box_size` | Minimum relative box size (area) to consider valid | 0.01 |
+| `--max_box_size` | Maximum relative box size (area) to consider valid | 0.9 |
+| `--overlap_threshold` | IoU threshold for flagging overlapping boxes | 0.7 |
+| `--edge_threshold` | Distance from edge to flag edge boxes | 0.01 |
+| `--aspect_ratio_threshold` | Threshold for flagging unusual aspect ratios | 2.0 |
+| `--verbose` | Enable verbose output for debugging | False |
+
+#### Validation Output
+
+The tool generates:
+- Visual reports with color-coded issue indicators
+- A summary report (`issue_summary.txt`)
+- Detailed JSON data for further analysis (`detailed_issues.json`)
+
+This helps identify and fix annotation issues before training models.
+
 ### Debug and Visualization Tools
 
 This project includes additional utilities to help visualize and debug your dataset.
@@ -152,12 +196,22 @@ For each bounding box:
 
 The tool randomly assigns images to training and validation sets according to the specified split ratio, which provides a proper dataset division for model training.
 
+### Validation Analysis
+
+The validation tool performs several checks:
+
+1. **Size Analysis**: Identifies boxes that are too small or too large relative to the image
+2. **Overlap Detection**: Calculates IoU between boxes to find potential duplicates
+3. **Edge Detection**: Identifies boxes positioned very close to image boundaries
+4. **Aspect Ratio Analysis**: Compares each box's aspect ratio to the mean for its class to find outliers
+
 ## Troubleshooting Common Issues
 
 - **Misaligned Bounding Boxes**: Use the comparison tool to identify issues in original vs processed images
 - **Missing Labels**: Check if some images don't have corresponding label files
 - **Edge Cases**: Objects near image edges might require special attention
 - **Expansion Problems**: Reduce the expansion percentage if objects overlap after processing
+- **Validation Issues**: Adjust validation thresholds based on your specific dataset characteristics
 
 ## License
 
